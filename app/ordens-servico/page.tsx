@@ -15,8 +15,6 @@ export default function OrdensServicoPage() {
   const [ordemParaConcluir, setOrdemParaConcluir] = useState<string | null>(null)
   const [metodoPagamento, setMetodoPagamento] = useState<'Débito' | 'Crédito' | 'Pix'>('Pix')
   const [parcelas, setParcelas] = useState<number>(1)
-  const [imprimirModalOpen, setImprimirModalOpen] = useState(false)
-  const [ordemParaImprimir, setOrdemParaImprimir] = useState<(OrdemServico & { cliente: ClienteLojista | null; pecas?: ItemOrdemServico[] }) | null>(null)
 
   useEffect(() => {
     fetchOrdens()
@@ -76,46 +74,12 @@ export default function OrdensServicoPage() {
       .from('itens_ordem_servico')
       .select('*')
       .eq('ordem_servico_id', ordem.id)
-    
-    setOrdemParaImprimir({ ...ordem, pecas: pecasData || [] })
-    setImprimirModalOpen(true)
-  }
 
-  const formatDateString = (value?: string | null) => {
-    if (!value) return ''
-    const [datePart] = value.split('T')
-    const [year, month, day] = datePart.split('-')
-    return year && month && day ? `${day}/${month}/${year}` : datePart
-  }
-
-  const formatLocalTimestamp = (date: Date) => {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-  }
-
-  function imprimirOrdem(formato: 'A4' | 'Cupom80mm') {
-    if (!ordemParaImprimir) return
+    // Imprimir diretamente sem modal
+    const ordemParaImprimir = { ...ordem, pecas: pecasData || [] }
 
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
-
-    const estiloA4 = `
-      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px; }
-      .header h1 { font-size: 24px; margin: 0; color: #1e40af; }
-      .section { margin: 20px 0; }
-      .section h2 { font-size: 16px; margin-bottom: 10px; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
-      .info-item { margin: 5px 0; }
-      .info-label { font-weight: bold; color: #374151; }
-      .info-value { color: #6b7280; }
-      .terms { font-size: 12px; color: #6b7280; background: #f9fafb; padding: 15px; border-left: 3px solid #dc2626; margin-top: 20px; }
-      .terms h3 { font-size: 14px; margin: 0 0 10px 0; color: #dc2626; }
-      .terms p { margin: 5px 0; }
-      .signature { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-      .signature-box { text-align: center; padding: 20px; border-top: 1px solid #000; }
-      .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #9ca3af; }
-    `
 
     const estiloCupom = `
       body { font-family: Arial, sans-serif; padding: 10px; max-width: 80mm; margin: 0 auto; line-height: 1.4; }
@@ -142,7 +106,7 @@ export default function OrdensServicoPage() {
       <html>
         <head>
           <title>Ordem de Serviço</title>
-          <style>${formato === 'A4' ? estiloA4 : estiloCupom}</style>
+          <style>${estiloCupom}</style>
         </head>
         <body>
           <div class="header">
@@ -235,8 +199,18 @@ export default function OrdensServicoPage() {
     `)
     printWindow.document.close()
     printWindow.print()
-    setImprimirModalOpen(false)
-    setOrdemParaImprimir(null)
+  }
+
+  const formatDateString = (value?: string | null) => {
+    if (!value) return ''
+    const [datePart] = value.split('T')
+    const [year, month, day] = datePart.split('-')
+    return year && month && day ? `${day}/${month}/${year}` : datePart
+  }
+
+  const formatLocalTimestamp = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
   }
 
   async function confirmarConclusao() {
@@ -749,37 +723,6 @@ export default function OrdensServicoPage() {
                 className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all"
               >
                 Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Seleção de Formato de Impressão */}
-      {imprimirModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Selecione o Formato de Impressão</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => imprimirOrdem('A4')}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
-              >
-                <Printer className="w-5 h-5" />
-                Impressora A4
-              </button>
-              <button
-                onClick={() => imprimirOrdem('Cupom80mm')}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all"
-              >
-                <Printer className="w-5 h-5" />
-                Cupom 80mm
-              </button>
-              <button
-                onClick={() => { setImprimirModalOpen(false); setOrdemParaImprimir(null) }}
-                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
-              >
-                Cancelar
               </button>
             </div>
           </div>
