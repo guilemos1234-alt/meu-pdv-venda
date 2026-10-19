@@ -108,13 +108,17 @@ export default function RelatoriosCompleto() {
     setVendaParaImprimir(null)
   }
 
-  function cancelarVenda(vendaId: number) {
+  async function cancelarVenda(vendaId: number) {
     if (!confirm('Tem certeza que deseja cancelar esta venda?')) return
 
-    const vendas = JSON.parse(localStorage.getItem('vendas') || '[]')
-    const vendasAtualizadas = vendas.filter((v: any) => v.id !== vendaId)
-    localStorage.setItem('vendas', JSON.stringify(vendasAtualizadas))
-    
+    // Deletar venda do Supabase
+    const { error } = await supabase.from('vendas').delete().eq('id', vendaId)
+
+    if (error) {
+      alert('Erro ao cancelar venda: ' + error.message)
+      return
+    }
+
     // Recarregar os dados
     window.location.reload()
   }
@@ -131,37 +135,108 @@ export default function RelatoriosCompleto() {
           })
         }
       } catch (e) {
-        // falha ao buscar não impede uso de localStorage
+        // falha ao buscar não impede funcionamento
       }
 
-      // Carregar dados do localStorage
-      const vendas = JSON.parse(localStorage.getItem('vendas') || '[]')
-      
-      // Calcular estatísticas
-      const totalVendas = vendas.length
-      const totalValor = vendas.reduce((acc: number, v: any) => acc + (v.total || 0), 0)
-      const itensVendidos = vendas.reduce((acc: number, v: any) => {
-        return acc + (v.itens?.reduce((sum: number, item: any) => sum + (item.quantidade || 0), 0) || 0)
-      }, 0)
-      const ticketMedio = totalVendas > 0 ? totalValor / totalVendas : 0
+      // Buscar fornecedores para mapear ids -> nomes
+      let fornecedoresMap: Record<string, string> = {}
+      try {
+        const response = await supabase.from('fornecedores').select('id, nome')
+        const fornecedoresData = response.data
+        if (fornecedoresData) {
+          fornecedoresData.forEach((f: any) => {
+            fornecedoresMap[f.id] = f.nome
+          })
+        }
+      } catch (e) {
+        // falha ao buscar não impede funcionamento
+      }
 
-      // Calcular lucro vendas: soma de (preco_venda - custo) * quantidade
+      // Buscar produtos para mapear ids -> nomes e custos
+      let produtosMap: Record<string, { nome: string, custo: number }> = {}
+      try {
+        const response = await supabase.from('produtos').select('id, nome, custo')
+        const produtosData = response.data
+        if (produtosData) {
+          produtosData.forEach((p: any) => {
+            produtosMap[p.id] = { nome: p.nome, custo: p.custo || 0 }
+          })
+        }
+      } catch (e) {
+        // falha ao buscar não impede funcionamento
+      }
+
+      // Buscar vendas do Supabase
+      const { data: vendas, error: vendasError } = await supabase
+        .from('vendas')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      let totalVendas = 0
+      let totalValor = 0
+      let itensVendidos = 0
       let totalCusto = 0
-      let totalVenda = 0
-      
-      vendas.forEach((venda: any) => {
-        venda.itens?.forEach((item: any) => {
-          const valorVenda = (item.preco || 0) * (item.quantidade || 1)
-          // Se tem custo, usa o valor. Senão, assume 20% de margem (80% de custo)
-          const custoProduto = item.custo 
-            ? (item.custo * (item.quantidade || 1)) 
-            : (valorVenda * 0.8)
-          totalVenda += valorVenda
-          totalCusto += custoProduto
-        })
-      })
-      
-      const lucroVendas = totalVenda - totalCusto
+      let totalVendaCalc = 0
+      const produtosCount: Record<string, number> = {}
+      const vendasDetalhadas: any[] = []
+
+      if (!vendasError && vendas) {
+        totalVendas = vendas.length
+
+        // Para cada venda, buscar seus itens
+        for (const venda of vendas) {
+          const { data: itensVenda, error: itensError } = await supabase
+            .from('itens_venda')
+            .select('*')
+            .eq('venda_id', venda.id)
+
+          if (!itensError && itensVenda) {
+            const itensComNomes = itensVenda.map((item: any) => {
+              const produtoInfo = produtosMap[item.produto_id] || { nome: 'Produto não encontrado', custo: 0 }
+              return {
+                ...item,
+                nome: produtoInfo.nome,
+                custo: produtoInfo.custo
+              }
+            })
+
+            totalValor += venda.valor_total || 0
+            itensVendidos += itensVenda.length
+
+            // Calcular produtos mais vendidos
+            itensVenda.forEach((item: any) => {
+              const nome = produtosMap[item.produto_id]?.nome || 'Produto não encontrado'
+              produtosCount[nome] = (produtosCount[nome] || 0) + item.quantidade
+            })
+
+            // Calcular lucro vendas
+            itensVenda.forEach((item: any) => {
+              const valorVenda = item.preco_unitario * item.quantidade
+              const produtoInfo = produtosMap[item.produto_id] || { custo: 0 }
+              const custoProduto = produtoInfo.custo * item.quantidade
+              totalVendaCalc += valorVenda
+              totalCusto += custoProduto
+            })
+
+            // Montar lista de vendas realizadas
+            const clienteNome = clientesMap[venda.cliente_lojista_id] || 'Cliente não informado'
+            const fornecedorNome = fornecedoresMap[venda.fornecedor_id] || null
+
+            vendasDetalhadas.push({
+              id: venda.id,
+              data: new Date(venda.created_at),
+              cliente: clienteNome,
+              pagamento: venda.metodo_pagamento || 'N/A',
+              fornecedorNome: fornecedorNome,
+              itens: itensComNomes,
+              total: venda.valor_total || 0
+            })
+          }
+        }
+      }
+
+      const ticketMedio = totalVendas > 0 ? totalValor / totalVendas : 0
+      const lucroVendas = totalVendaCalc - totalCusto
 
       setStats({
         totalVendas,
@@ -172,36 +247,15 @@ export default function RelatoriosCompleto() {
       })
 
       // Calcular produtos mais vendidos
-      const produtosCount: Record<string, number> = {}
-      vendas.forEach((venda: any) => {
-        venda.itens?.forEach((item: any) => {
-          const nome = item.nome || item.produto
-          produtosCount[nome] = (produtosCount[nome] || 0) + item.quantidade
-        })
-      })
-      
       const produtosOrdenados = Object.entries(produtosCount)
         .map(([nome, vendas]) => ({ nome, vendas: vendas as number }))
         .sort((a, b) => b.vendas - a.vendas)
-      
+
       setProdutosMaisVendidos(produtosOrdenados)
 
-      // Montar lista de vendas realizadas (inclui forma de pagamento e nome do cliente/fornecedor)
-      const vendaDetalhada = vendas.map((venda: any, index: number) => {
-        const dataVenda = venda.data ? new Date(venda.data) : new Date()
-        const clienteNome = venda.clienteNome || clientesMap[venda.clienteId] || clientesMap[venda.cliente] || venda.cliente || 'Cliente não informado'
-        return {
-          id: index,
-          data: dataVenda,
-          cliente: clienteNome,
-          pagamento: venda.metodoPagamento || venda.metodo_pagamento || 'N/A',
-          fornecedorNome: venda.fornecedorNome || venda.fornecedor_nome || venda.fornecedor || venda.fornecedorId || null,
-          itens: venda.itens || [],
-          total: venda.total || 0
-        }
-      }).sort((a: any, b: any) => b.data.getTime() - a.data.getTime())
-      
-      setListaVendas(vendaDetalhada)
+      // Ordenar vendas por data (mais recentes primeiro)
+      vendasDetalhadas.sort((a: any, b: any) => b.data.getTime() - a.data.getTime())
+      setListaVendas(vendasDetalhadas)
 
       // Buscar assistências realizadas (ordens de serviço concluídas)
       const { data: assistencias, error: assistenciasError } = await supabase
