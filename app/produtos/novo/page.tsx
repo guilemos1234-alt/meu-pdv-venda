@@ -34,7 +34,7 @@ export default function NovoProdutoPage() {
   async function fetchCategorias() {
     const { data } = await supabase.from('produtos').select('descricao').not('descricao', 'is', null)
     if (data) {
-      const unicos = [...new Set(data.map(p => p.descricao).filter(Boolean))]
+      const unicos = Array.from(new Set(data.map(p => p.descricao).filter(Boolean)))
       setCategoriasExistentes(unicos)
     }
   }
