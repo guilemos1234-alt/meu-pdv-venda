@@ -81,22 +81,28 @@ export default function OrdensServicoPage() {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
-    const estiloCupom = `
-      body { font-family: Arial, sans-serif; padding: 10px; max-width: 80mm; margin: 0 auto; line-height: 1.4; }
-      .header { text-align: center; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
-      .header h1 { font-size: 14px; margin: 0; color: #1e40af; }
-      .section { margin: 10px 0; }
-      .section h2 { font-size: 12px; margin-bottom: 5px; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; }
-      .info-grid { display: grid; grid-template-columns: 1fr; gap: 5px; margin: 5px 0; }
-      .info-item { margin: 3px 0; }
-      .info-label { font-weight: bold; color: #374151; font-size: 10px; }
-      .info-value { color: #6b7280; font-size: 10px; }
-      .terms { font-size: 9px; color: #6b7280; background: #f9fafb; padding: 10px; border-left: 2px solid #dc2626; margin-top: 10px; }
-      .terms h3 { font-size: 10px; margin: 0 0 5px 0; color: #dc2626; }
-      .terms p { margin: 3px 0; }
-      .signature { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-      .signature-box { text-align: center; padding: 10px; border-top: 1px solid #000; font-size: 10px; }
-      .footer { text-align: center; margin-top: 15px; font-size: 9px; color: #9ca3af; }
+    const estiloA4 = `
+      @page { margin: 0; }
+      body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 11px; line-height: 1.3; }
+      .container { max-width: 210mm; margin: 0 auto; border: 2px solid #000; }
+      .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 15px; text-align: center; }
+      .header h1 { margin: 0; font-size: 18px; }
+      .header p { margin: 5px 0 0 0; font-size: 10px; }
+      .content { padding: 15px; }
+      .section { margin-bottom: 15px; }
+      .section-title { background: #f3f4f6; padding: 8px 12px; font-weight: bold; color: #1f2937; margin-bottom: 10px; border-left: 4px solid #1e40af; }
+      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .info-item { display: flex; }
+      .info-label { font-weight: bold; color: #374151; min-width: 100px; }
+      .info-value { color: #6b7280; }
+      .pecas-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      .pecas-table th { background: #f9fafb; padding: 8px; text-align: left; font-weight: bold; border-bottom: 2px solid #e5e7eb; }
+      .pecas-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+      .terms { background: #fef2f2; padding: 12px; border-left: 4px solid #dc2626; margin-top: 15px; font-size: 9px; }
+      .terms h3 { margin: 0 0 8px 0; color: #dc2626; font-size: 10px; }
+      .terms p { margin: 4px 0; }
+      .signature { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+      .signature-box { text-align: center; padding-top: 40px; border-top: 1px solid #000; }
     `
 
     const dataEntrada = ordemParaImprimir.data_entrada ? new Date(ordemParaImprimir.data_entrada).toLocaleDateString('pt-BR') : 'N/A'
@@ -106,94 +112,104 @@ export default function OrdensServicoPage() {
       <html>
         <head>
           <title>Ordem de Serviço</title>
-          <style>${estiloCupom}</style>
+          <style>${estiloA4}</style>
         </head>
         <body>
-          <div class="header">
-            <h1>ORDEM DE SERVIÇO - ULTRA CELL</h1>
-            <p>CNPJ: 40.886.908/0001-69 | WhatsApp: (11)97209-8349</p>
-            <p>Endereço: Rua Martim Tenório, 65 - Lapa - São Paulo</p>
-          </div>
-
-          <div class="section">
-            <h2>DADOS DO CLIENTE</h2>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Nome:</span>
-                <span class="info-value">${ordemParaImprimir.cliente?.nome_loja || 'Cliente não informado'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Data de Entrada:</span>
-                <span class="info-value">${dataEntrada}</span>
-              </div>
+          <div class="container">
+            <div class="header">
+              <h1>ORDEM DE SERVIÇO - ULTRA CELL</h1>
+              <p>CNPJ: 40.886.908/0001-69 | WhatsApp: (11)97209-8349</p>
+              <p>Rua Martim Tenório, 65 - Lapa - São Paulo</p>
             </div>
-          </div>
 
-          <div class="section">
-            <h2>DADOS DO APARELHO</h2>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Aparelho:</span>
-                <span class="info-value">${ordemParaImprimir.aparelho || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Modelo:</span>
-                <span class="info-value">${ordemParaImprimir.modelo || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Problema:</span>
-                <span class="info-value">${ordemParaImprimir.problema_descricao || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Previsão de Entrega:</span>
-                <span class="info-value">${dataPrevisao}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2>SERVIÇO E PEÇAS</h2>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Serviço executado:</span>
-                <span class="info-value">${ordemParaImprimir.solucao || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Valor do Serviço:</span>
-                <span class="info-value">${ordemParaImprimir.valor ? 'R$ ' + ordemParaImprimir.valor.toFixed(2) : 'A definir'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Status:</span>
-                <span class="info-value">${ordemParaImprimir.status}</span>
-              </div>
-            </div>
-            ${ordemParaImprimir.pecas && ordemParaImprimir.pecas.length > 0 ? `
-              <div style="margin-top: 20px;">
-                <h3 style="font-size: 14px; margin-bottom: 10px; color: #374151;">Peças Utilizadas:</h3>
-                ${ordemParaImprimir.pecas.map((peca, i) => `
-                  <div style="background: #f9fafb; padding: 10px; margin: 5px 0; border-left: 3px solid #f97316;">
-                    <p style="margin: 0; font-weight: bold;">${i + 1}. ${peca.peca_nome}</p>
-                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Quantidade: ${peca.quantidade}</p>
-                    ${peca.preco_venda ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #16a34a; font-weight: bold;">Preço: R$ ${peca.preco_venda.toFixed(2)}</p>` : ''}
+            <div class="content">
+              <div class="section">
+                <div class="section-title">DADOS DO CLIENTE</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Nome:</span>
+                    <span class="info-value">${ordemParaImprimir.cliente?.nome_loja || 'Cliente não informado'}</span>
                   </div>
-                `).join('')}
+                  <div class="info-item">
+                    <span class="info-label">Data Entrada:</span>
+                    <span class="info-value">${dataEntrada}</span>
+                  </div>
+                </div>
               </div>
-            ` : ''}
-          </div>
 
-          <div class="terms">
-            <h3>⚠️ TERMOS DE GARANTIA E ABANDONO</h3>
-            <p><strong>GARANTIA:</strong> O serviço possui garantia de 180 (cento e oitenta) dias para telas na qualidade oled, original e baterias e 90 (noventa) dias para outros tipos de serviço a partir da data de entrega, cobrindo defeitos de fabricação e mão de obra. Não cobre danos causados por uso inadequado, queda, contato com líquidos ou tentativas de reparo por terceiros não autorizados.</p>
-            <p><strong>ABANDONO (Art. 1.331 do Código Civil):</strong> O equipamento será considerado abandonado se não for retirado no prazo de 30 (trinta) dias após a notificação de conclusão do serviço. Após este período, a empresa reserva-se o direito de cobrar taxa de armazenamento de R$ 5,00 (cinco reais) por dia e, após 60 (sessenta) dias, o equipamento poderá ser descartado ou doado.</p>
-            <p><strong>NO CASO DO APARELHO ENTRAR DESLIGADO: </strong>A garantia irá cobrir somente o serviço feito, não responsabilizando a loja por possíveis avarias não testadas na hora do recebimento do aparelho.</p>
-          </div>
+              <div class="section">
+                <div class="section-title">DADOS DO APARELHO</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Aparelho:</span>
+                    <span class="info-value">${ordemParaImprimir.aparelho || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Modelo:</span>
+                    <span class="info-value">${ordemParaImprimir.modelo || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Problema:</span>
+                    <span class="info-value">${ordemParaImprimir.problema_descricao || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Previsão:</span>
+                    <span class="info-value">${dataPrevisao}</span>
+                  </div>
+                </div>
+              </div>
 
-          <div class="signature">
-            <div class="signature-box">
-            
+              <div class="section">
+                <div class="section-title">SERVIÇO REALIZADO</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Serviço:</span>
+                    <span class="info-value">${ordemParaImprimir.solucao || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Valor:</span>
+                    <span class="info-value">${ordemParaImprimir.valor ? 'R$ ' + ordemParaImprimir.valor.toFixed(2) : 'A definir'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">${ordemParaImprimir.status}</span>
+                  </div>
+                </div>
+                ${ordemParaImprimir.pecas && ordemParaImprimir.pecas.length > 0 ? `
+                  <table class="pecas-table">
+                    <thead>
+                      <tr>
+                        <th>Peça</th>
+                        <th>Qtd</th>
+                        <th>Preço</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${ordemParaImprimir.pecas.map(peca => `
+                        <tr>
+                          <td>${peca.peca_nome}</td>
+                          <td>${peca.quantidade}</td>
+                          <td>${peca.preco_venda ? 'R$ ' + peca.preco_venda.toFixed(2) : '-'}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : ''}
+              </div>
+
+              <div class="terms">
+                <h3>⚠️ TERMOS DE GARANTIA E ABANDONO</h3>
+                <p><strong>GARANTIA:</strong> 180 dias para telas OLED/original e baterias, 90 dias para outros serviços. Não cobre danos por uso inadequado, queda, líquidos ou reparo por terceiros.</p>
+                <p><strong>ABANDONO:</strong> Equipamento abandonado após 30 dias da notificação. Taxa de armazenamento: R$ 5,00/dia. Após 60 dias, pode ser descartado.</p>
+                <p><strong>APARELHO DESLIGADO:</strong> Garantia cobre apenas o serviço realizado, não avarias não testadas no recebimento.</p>
+              </div>
+
+              <div class="signature">
+                <div class="signature-box">Cliente</div>
+                <div class="signature-box">Ultra Cell</div>
+              </div>
             </div>
           </div>
-
         </body>
       </html>
     `)
@@ -629,7 +645,7 @@ export default function OrdensServicoPage() {
 
             <div className="p-6 border-t border-gray-100 flex gap-3">
               <button
-                onClick={() => window.print()}
+                onClick={() => abrirModalImprimir(selectedOrdem)}
                 className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all"
               >
                 <Printer className="w-5 h-5" />
