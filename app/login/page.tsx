@@ -18,23 +18,35 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
+    console.log('Tentando login com:', email)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('Resposta Supabase:', { data, error })
+
       if (error) {
-        setError('Email ou senha incorretos')
+        console.error('Erro de login:', error)
+        setError(`Erro: ${error.message}`)
         setLoading(false)
         return
       }
 
       if (data.user) {
+        console.log('Login bem-sucedido:', data.user)
         router.push('/')
         router.refresh()
+      } else {
+        console.error('Usuário não encontrado')
+        setError('Erro ao fazer login: usuário não encontrado')
+        setLoading(false)
       }
     } catch (err) {
+      console.error('Erro no login:', err)
       setError('Erro ao fazer login. Tente novamente.')
       setLoading(false)
     }
