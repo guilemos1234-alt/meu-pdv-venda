@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, OrdemServico, ClienteLojista, ItemOrdemServico } from '@/lib/supabase'
-import { Plus, Edit, Trash2, Search, Wrench, ArrowRight, Filter, Calendar, Clock, CheckCircle, AlertCircle, XCircle, Loader2, Printer, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Wrench, ArrowRight, Filter, Calendar, Clock, CheckCircle, AlertCircle, XCircle, Loader2, Printer, Eye, MessageCircle } from 'lucide-react'
 
 export default function OrdensServicoPage() {
   const [ordens, setOrdens] = useState<(OrdemServico & { cliente: ClienteLojista | null })[]>([])
@@ -215,6 +215,167 @@ export default function OrdensServicoPage() {
     `)
     printWindow.document.close()
     printWindow.print()
+  }
+
+  async function enviarWhatsApp(ordem: OrdemServico & { cliente: ClienteLojista | null }) {
+    if (!ordem.cliente?.whatsapp) {
+      alert('Cliente não possui WhatsApp cadastrado')
+      return
+    }
+
+    // Formatar o número para o formato do WhatsApp (apenas números, com 55 para Brasil)
+    const numeroLimpo = ordem.cliente.whatsapp.replace(/\D/g, '')
+    const numeroFormatado = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`
+
+    // Gerar o PDF primeiro
+    const { data: pecasData } = await supabase
+      .from('itens_ordem_servico')
+      .select('*')
+      .eq('ordem_servico_id', ordem.id)
+
+    const ordemParaImprimir = { ...ordem, pecas: pecasData || [] }
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const estiloA4 = `
+      @page { margin: 0; }
+      body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 11px; line-height: 1.3; }
+      .container { max-width: 210mm; margin: 0 auto; border: 2px solid #000; }
+      .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 15px; text-align: center; }
+      .header h1 { margin: 0; font-size: 18px; }
+      .header p { margin: 5px 0 0 0; font-size: 10px; }
+      .content { padding: 15px; }
+      .section { margin-bottom: 15px; }
+      .section-title { background: #f3f4f6; padding: 8px 12px; font-weight: bold; color: #1f2937; margin-bottom: 10px; border-left: 4px solid #1e40af; }
+      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .info-item { display: flex; }
+      .info-label { font-weight: bold; color: #374151; min-width: 100px; }
+      .info-value { color: #6b7280; }
+      .pecas-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      .pecas-table th { background: #f9fafb; padding: 8px; text-align: left; font-weight: bold; border-bottom: 2px solid #e5e7eb; }
+      .pecas-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+      .terms { background: #fef2f2; padding: 12px; border-left: 4px solid #dc2626; margin-top: 15px; font-size: 9px; }
+      .terms h3 { margin: 0 0 8px 0; color: #dc2626; font-size: 10px; }
+      .terms p { margin: 4px 0; }
+      .signature { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+      .signature-box { text-align: center; padding-top: 40px; border-top: 1px solid #000; }
+    `
+
+    const dataEntrada = ordemParaImprimir.data_entrada ? new Date(ordemParaImprimir.data_entrada).toLocaleDateString('pt-BR') : 'N/A'
+    const dataPrevisao = ordemParaImprimir.data_previsao_entrega ? formatDateString(ordemParaImprimir.data_previsao_entrega) : 'A definir'
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Ordem de Serviço - ${ordemParaImprimir.cliente?.nome_loja || 'Cliente'}</title>
+          <style>${estiloA4}</style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>ORDEM DE SERVIÇO - ULTRA CELL</h1>
+              <p>CNPJ: 40.886.908/0001-69 | WhatsApp: (11)97209-8349</p>
+              <p>Rua Martim Tenório, 65 - Lapa - São Paulo</p>
+            </div>
+
+            <div class="content">
+              <div class="section">
+                <div class="section-title">DADOS DO CLIENTE</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Nome:</span>
+                    <span class="info-value">${ordemParaImprimir.cliente?.nome_loja || 'Cliente não informado'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Data Entrada:</span>
+                    <span class="info-value">${dataEntrada}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">DADOS DO APARELHO</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Aparelho:</span>
+                    <span class="info-value">${ordemParaImprimir.aparelho || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Modelo:</span>
+                    <span class="info-value">${ordemParaImprimir.modelo || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Problema:</span>
+                    <span class="info-value">${ordemParaImprimir.problema_descricao || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Previsão:</span>
+                    <span class="info-value">${dataPrevisao}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">SERVIÇO REALIZADO</div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Serviço:</span>
+                    <span class="info-value">${ordemParaImprimir.solucao || 'N/A'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Valor:</span>
+                    <span class="info-value">${ordemParaImprimir.valor ? 'R$ ' + ordemParaImprimir.valor.toFixed(2) : 'A definir'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">${ordemParaImprimir.status}</span>
+                  </div>
+                </div>
+                ${ordemParaImprimir.pecas && ordemParaImprimir.pecas.length > 0 ? `
+                  <table class="pecas-table">
+                    <thead>
+                      <tr>
+                        <th>Peça</th>
+                        <th>Qtd</th>
+                        <th>Preço</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${ordemParaImprimir.pecas.map(peca => `
+                        <tr>
+                          <td>${peca.peca_nome}</td>
+                          <td>${peca.quantidade}</td>
+                          <td>${peca.preco_venda ? 'R$ ' + peca.preco_venda.toFixed(2) : '-'}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : ''}
+              </div>
+
+              <div class="terms">
+                <h3>⚠️ TERMOS DE GARANTIA E ABANDONO</h3>
+                <p><strong>GARANTIA:</strong> 180 dias para telas OLED/original e baterias, 90 dias para outros serviços. Não cobre danos por uso inadequado, queda, líquidos ou reparo por terceiros.</p>
+                <p><strong>ABANDONO:</strong> Equipamento abandonado após 30 dias da notificação. Taxa de armazenamento: R$ 5,00/dia. Após 60 dias, pode ser descartado.</p>
+                <p><strong>APARELHO DESLIGADO:</strong> Garantia cobre apenas o serviço realizado, não avarias não testadas no recebimento.</p>
+              </div>
+
+              <div class="signature">
+                <div class="signature-box">Cliente</div>
+                <div class="signature-box">Ultra Cell</div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+
+    // Abrir o WhatsApp Web com o número do cliente
+    const mensagem = `Olá ${ordem.cliente.nome_loja}! Segue a ordem de serviço para o ${ordem.aparelho} modelo ${ordem.modelo || ''}.`
+    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`
+    window.open(whatsappUrl, '_blank')
   }
 
   const formatDateString = (value?: string | null) => {
@@ -456,6 +617,13 @@ export default function OrdensServicoPage() {
                         >
                           <Printer className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => enviarWhatsApp(ordem)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Enviar WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
                         {ordem.status !== 'Concluído' && (
                           <button
                             onClick={() => abrirModalConcluir(ordem.id)}
@@ -650,6 +818,13 @@ export default function OrdensServicoPage() {
               >
                 <Printer className="w-5 h-5" />
                 Imprimir
+              </button>
+              <button
+                onClick={() => enviarWhatsApp(selectedOrdem)}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all"
+              >
+                <MessageCircle className="w-5 h-5" />
+                WhatsApp
               </button>
               <Link
                 href={`/ordens-servico/${selectedOrdem.id}`}
