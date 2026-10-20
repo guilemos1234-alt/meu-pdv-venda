@@ -1,45 +1,48 @@
-# Configuração de Autenticação no Vercel
+# Configuração de Autenticação com Supabase
 
-## Credenciais Padrão
-- **Email:** admin@ultracell.com
-- **Senha:** admin123
+Este sistema usa **Supabase Auth** para autenticação, que já está configurado no seu projeto.
 
-## Como alterar as credenciais no Vercel
+## Como criar um usuário no Supabase
 
-1. Acesse: https://vercel.com/dashboard
-2. Clique no projeto "meu-pdv-venda"
-3. Clique em **Settings** (engrenagem)
-4. Clique em **Environment Variables** no menu lateral
-5. Adicione as seguintes variáveis:
+1. Acesse: https://supabase.com/dashboard
+2. Selecione seu projeto
+3. No menu lateral, clique em **Authentication**
+4. Clique em **Users**
+5. Clique em **Add user**
+6. Preencha:
+   - **Email:** seu-email@exemplo.com
+   - **Password:** sua-senha-segura
+   - **Auto Confirm User:** marque esta opção
+7. Clique em **Create user**
 
-   **ADMIN_EMAIL**
-   - Value: seu-email@exemplo.com
-   - Environment: Production, Preview, and Development
-   - Clique em Save
+## Como fazer login
 
-   **ADMIN_PASSWORD**
-   - Value: sua-senha-segura
-   - Environment: Production, Preview, and Development
-   - Clique em Save
+1. Acesse o site: https://meu-pdv-venda.vercel.app
+2. Você será redirecionado para a página de login
+3. Use o email e senha que você criou no Supabase
+4. Clique em "Entrar"
 
-6. Vá para a aba **Deployments**
-7. Clique nos três pontos (...) ao lado do deployment mais recente
-8. Clique em **Redeploy**
+## Como criar mais usuários
 
-## Como alterar as credenciais localmente
+Se você precisar adicionar mais usuários (funcionários, etc.):
 
-Edite o arquivo `.env.local`:
-```
-ADMIN_EMAIL=seu-email@exemplo.com
-ADMIN_PASSWORD=sua-senha-segura
-```
+1. Acesse o painel do Supabase
+2. Vá em **Authentication** → **Users**
+3. Clique em **Add user**
+4. Crie quantos usuários precisar
 
-Depois reinicie o servidor:
-```bash
-npm run dev
-```
+## Vantagens do Supabase Auth
 
-## Importante
-- Nunca commit o arquivo `.env.local` (já está no .gitignore)
-- Use senhas fortes
-- Altere as credenciais padrão o mais rápido possível
+- ✅ Não precisa configurar variáveis de ambiente no Vercel
+- ✅ Funciona automaticamente no Vercel
+- ✅ Sistema seguro e profissional
+- ✅ Fácil de gerenciar usuários
+- ✅ Suporta múltiplos usuários
+
+## Alterar senha de um usuário
+
+1. Acesse o painel do Supabase
+2. Vá em **Authentication** → **Users**
+3. Clique no usuário que deseja alterar
+4. Clique em **Reset Password**
+5. Defina a nova senha

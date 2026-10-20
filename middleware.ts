@@ -1,21 +1,45 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value
+export async function middleware(request: NextRequest) {
+  const res = NextResponse.next()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          res.cookies.delete({ name, ...options })
+        },
+      },
+    }
+  )
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
   const path = request.nextUrl.pathname
 
   // Se não estiver autenticado e não estiver na página de login, redirecionar
-  if (!token && path !== '/login') {
+  if (!session && path !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Se estiver autenticado e tentar acessar a página de login, redirecionar para home
-  if (token && path === '/login') {
+  if (session && path === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  return NextResponse.next()
+  return res
 }
 
 export const config = {

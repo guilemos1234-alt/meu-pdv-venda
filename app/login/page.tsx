@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import { Lock, LogIn, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
@@ -18,23 +19,21 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Email ou senha incorretos')
+      if (error) {
+        setError('Email ou senha incorretos')
         setLoading(false)
         return
       }
 
-      // O token é salvo como cookie pela API
-      router.push('/')
-      router.refresh()
+      if (data.user) {
+        router.push('/')
+        router.refresh()
+      }
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.')
       setLoading(false)
@@ -113,7 +112,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Entre com suas credenciais para acessar o sistema</p>
+          <p>Entre com suas credenciais do Supabase</p>
         </div>
       </div>
     </div>

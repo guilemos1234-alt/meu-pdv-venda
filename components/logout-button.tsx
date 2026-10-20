@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, User } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { LogOut } from 'lucide-react'
 
 export default function LogoutButton() {
   const [loading, setLoading] = useState(false)
@@ -10,7 +11,7 @@ export default function LogoutButton() {
 
   async function handleLogout() {
     setLoading(true)
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
